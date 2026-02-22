@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hledač Pokladů ČR</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { height: 100vh; width: 100vw; }
+        .control-panel { 
+            position: absolute; 
+            bottom: 30px; 
+            left: 50%; 
+            transform: translateX(-50%);
+            z-index: 1000; 
+            background: rgba(255, 255, 255, 0.9); 
+            padding: 15px; 
+            border-radius: 10px; 
+            box-shadow: 0 0 15px rgba(0,0,0,0.3);
+            width: 80%;
+            max-width: 300px;
+            text-align: center;
+        }
+        input[type=range] { width: 100%; }
+        .locate-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <button class="locate-btn" onclick="map.locate({setView: true, maxZoom: 18})">KDE JSEM?</button>
+    <div class="control-panel">
+        <label>Průhlednost staré mapy:</label>
+        <input type="range" id="opacity" min="0" max="1" step="0.1" value="0.7">
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // 1. Moderní mapa (OpenStreetMap)
+        var modern = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+            maxZoom: 19,
+            attribution: '© OSM'
+        });
+
+        // 2. Císařské otisky ČR (WMS ČÚZK) - pokrývá celou republiku
+        var historicka = L.tileLayer.wms('https://ags.cuzk.cz/arcgis/services/archiv/archiv/MapServer/WMSServer', {
+            layers: '0', 
+            format: 'image/png',
+            transparent: true,
+            opacity: 0.7,
+            version: '1.3.0',
+            attribution: '© ČÚZK'
+        });
+
+        // Inicializace mapy (nastaven střed ČR pro začátek)
+        var map = L.map('map', {
+            center: [49.817, 15.473], 
+            zoom: 7,
+            layers: [modern, historicka]
+        });
+
+        // Marker pro tvoji polohu
+        var locationMarker = L.circleMarker([0,0], {
+            color: '#007bff', 
+            fillColor: '#007bff',
+            fillOpacity: 0.8,
+            radius: 8
+        }).addTo(map);
+
+        // Funkce pro aktualizaci polohy
+        function onLocationFound(e) {
+            locationMarker.setLatLng(e.latlng);
+        }
+
+        map.on('locationfound', onLocationFound);
+
+        // Automatické sledování polohy při startu
+        map.locate({setView: true, maxZoom: 16, watch: true});
+
+        // Ovládání průhlednosti posuvníkem
+        document.getElementById('opacity').addEventListener('input', function(e) {
+            historicka.setOpacity(e.target.value);
+        });
+    </script>
+</body>
+</html>
